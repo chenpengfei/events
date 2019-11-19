@@ -30,11 +30,8 @@ download:
 	go mod tidy
 	go mod download
 
-run:
-	go run examples/scuttlebutt/main.go
-
-benchmark:
-	go test -bench=. examples/pull-stream/random_test.go examples/pull-stream/random.go
+emitter:
+	go run examples/emitter/main.go
 
 lint:
 	golangci-lint run ./...
