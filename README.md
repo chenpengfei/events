@@ -1,4 +1,7 @@
 # events
+[![Build Status](https://travis-ci.com/chenpengfei/events.svg)](https://travis-ci.com/chenpengfei/events)
+[![Coverage Status](https://coveralls.io/repos/github/chenpengfei/events/badge.svg)](https://coveralls.io/github/chenpengfei/events)
+
 event emitter, safe for concurrent use.
 
 ## Asynchronous vs. Synchronous
