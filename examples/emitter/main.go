@@ -1,8 +1,8 @@
 package main
 
 import (
-	event "events/pkg/emitter"
 	"fmt"
+	event "github.com/chenpengfei/events/pkg/emitter"
 	"time"
 )
 

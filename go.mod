@@ -1,4 +1,4 @@
-module events
+module github.com/chenpengfei/events
 
 go 1.12
 
