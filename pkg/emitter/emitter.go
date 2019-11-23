@@ -6,8 +6,6 @@ import (
 	"sync"
 )
 
-//todo.需要改成异步？
-
 type OnCallback func(data interface{})
 
 var rw sync.RWMutex
@@ -63,4 +61,20 @@ func (e *Emitter) RemoveListener(name string, cb OnCallback) {
 			}
 		}
 	}
+}
+
+func (e *Emitter) ListenerCount(name string) int {
+	rw.Lock()
+	defer rw.Unlock()
+
+	counter := 0
+	if cbs, ok := e.store[name]; ok {
+		for _, v := range cbs {
+			if v != nil {
+				counter++
+			}
+		}
+	}
+
+	return counter
 }

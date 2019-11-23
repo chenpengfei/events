@@ -7,94 +7,126 @@ import (
 )
 
 func TestEmit(t *testing.T) {
-	event := NewEmitter()
-	total1 := 0
-	event.On("_update", func(data interface{}) {
-		total1 = total1 + data.(int)
-	})
+	assert := assert.New(t)
 
-	total2 := 0
-	event.On("_update", func(data interface{}) {
-		total2 = total2 + data.(int)
-	})
-
-	type user struct {
-		Name string
-		Age  int
+	expected := struct {
+		NameA  string
+		ValueA string
+		NameB  string
+		ValueB string
+	}{
+		NameA:  "nameA",
+		ValueA: "valueA",
+		NameB:  "nameB",
+		ValueB: "valueB",
 	}
-	counter := 0
-	event.On("_user", func(data interface{}) {
-		user := data.(user)
-		assert.Equal(t, "Alice", user.Name)
-		assert.Equal(t, 3, user.Age)
-		counter++
+
+	t.Run("one Emit, one On", func(t *testing.T) {
+		event := NewEmitter()
+		event.On(expected.NameA, func(data interface{}) {
+			assert.Equal(expected.ValueA, data.(string))
+		})
+		event.Emit(expected.NameA, expected.ValueA)
 	})
 
-	event.Emit("_update", 1)
-	event.Emit("_user", user{
-		Name: "Alice",
-		Age:  3,
+	t.Run("one Emit, two On", func(t *testing.T) {
+		event := NewEmitter()
+		event.On(expected.NameA, func(data interface{}) {
+			assert.Equal(expected.ValueA, data.(string))
+		})
+		event.On(expected.NameA, func(data interface{}) {
+			assert.Equal(expected.ValueA, data.(string))
+		})
+		event.Emit(expected.NameA, expected.ValueA)
 	})
-	event.Emit("_update", 2)
-	event.Emit("_user", user{
-		Name: "Alice",
-		Age:  3,
+
+	t.Run("two Emit, two On", func(t *testing.T) {
+		event := NewEmitter()
+		event.On(expected.NameA, func(data interface{}) {
+			assert.Equal(expected.ValueA, data.(string))
+		})
+		event.On(expected.NameB, func(data interface{}) {
+			assert.Equal(expected.ValueB, data.(string))
+		})
+		event.Emit(expected.NameA, expected.ValueA)
+		event.Emit(expected.NameB, expected.ValueB)
 	})
 
-	assert.Equal(t, 3, total1)
-	assert.Equal(t, 3, total2)
-	assert.Equal(t, 2, counter)
-}
-
-func TestEvent_On(t *testing.T) {
-	event := NewEmitter()
-	total := 0
-	cb1 := func(data interface{}) {
-		total = total + data.(int)
-	}
-	cb2 := func(data interface{}) {
-		total = total + data.(int) + 1
-	}
-	event.On("_update", cb1)
-	event.RemoveListener("_update", cb1)
-	event.On("_update", cb2)
-	event.Emit("_update", 1)
-	assert.Equal(t, 2, total)
-}
-
-func TestEvent_RemoveListener(t *testing.T) {
-	event := NewEmitter()
-	total := 0
-	cb := func(data interface{}) {
-		total = total + data.(int)
-	}
-	event.On("_update", cb)
-	event.Emit("_update", 1)
-	assert.Equal(t, 1, total)
-
-	event.RemoveListener("_update", cb)
-	event.Emit("_update", 1)
-	assert.Equal(t, 1, total)
-}
-
-func TestEventRace(t *testing.T) {
-	n := 100
-	event := NewEmitter()
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		for i := 0; i < n; i++ {
-			event.Emit("_update", "_update")
-			event.Emit("_update_once", "_update_once")
+	t.Run("RemoveListener", func(t *testing.T) {
+		counter := 0
+		cb := func(data interface{}) {
+			counter++
+			assert.Equal(expected.ValueA, data.(string))
 		}
-		wg.Done()
-	}()
-	go func() {
-		for i := 0; i < n; i++ {
-			event.On("_update", func(data interface{}) {
-			})
+		event := NewEmitter()
+		event.On(expected.NameA, cb)
+		event.Emit(expected.NameA, expected.ValueA)
+		assert.Equal(1, counter)
+		event.RemoveListener(expected.NameA, cb)
+		event.Emit(expected.NameA, expected.ValueA)
+		assert.Equal(1, counter)
+	})
+
+	t.Run("RemoveListener, On again", func(t *testing.T) {
+		counter := 0
+		cb := func(data interface{}) {
+			counter++
+			assert.Equal(expected.ValueA, data.(string))
 		}
-		wg.Done()
-	}()
-	wg.Wait()
+		event := NewEmitter()
+		event.On(expected.NameA, cb)
+		event.Emit(expected.NameA, expected.ValueA)
+		assert.Equal(1, counter)
+		event.RemoveListener(expected.NameA, cb)
+		event.On(expected.NameA, cb)
+		event.Emit(expected.NameA, expected.ValueA)
+		assert.Equal(2, counter)
+	})
+
+	t.Run("ListenerCount", func(t *testing.T) {
+		cbA := func(data interface{}) {
+			assert.Equal(expected.ValueA, data.(string))
+		}
+		event := NewEmitter()
+		event.On(expected.NameA, cbA)
+		assert.Equal(1, event.ListenerCount(expected.NameA))
+		event.RemoveListener(expected.NameA, cbA)
+		assert.Equal(0, event.ListenerCount(expected.NameA))
+	})
+
+	t.Run("data race", func(t *testing.T) {
+		cbA := func(data interface{}) {
+			assert.Equal(expected.ValueA, data.(string))
+		}
+		cbB := func(data interface{}) {
+			assert.Equal(expected.ValueB, data.(string))
+		}
+		n := 1000
+		event := NewEmitter()
+		var wg sync.WaitGroup
+		wg.Add(3)
+		go func() {
+			for i := 0; i < n; i++ {
+				event.Emit(expected.NameA, expected.ValueA)
+				event.Emit(expected.NameB, expected.ValueB)
+			}
+			wg.Done()
+		}()
+		go func() {
+			for i := 0; i < n; i++ {
+				event.On(expected.NameA, cbA)
+				event.On(expected.NameB, cbB)
+			}
+			wg.Done()
+		}()
+		go func() {
+			for i := 0; i < n; i++ {
+				event.RemoveListener(expected.NameA, cbA)
+				event.RemoveListener(expected.NameB, cbB)
+			}
+			wg.Done()
+		}()
+
+		wg.Wait()
+	})
 }
