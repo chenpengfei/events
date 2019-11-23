@@ -42,8 +42,7 @@ func (e *Emitter) On(name string, cb OnCallback) {
 	}
 
 	for i := 0; i < len(e.store[name]); i++ {
-		if e.store[name][i] == nil {
-			e.store[name][i] = cb
+		if e.equal(cb, e.store[name][i]) {
 			return
 		}
 	}
@@ -56,25 +55,27 @@ func (e *Emitter) RemoveListener(name string, cb OnCallback) {
 
 	if cbs, ok := e.store[name]; ok {
 		for i := 0; i < len(cbs); i++ {
-			if fmt.Sprintf("%v", cb) == fmt.Sprintf("%v", cbs[i]) {
-				cbs[i] = nil
+			if e.equal(cb, cbs[i]) {
+				copy(cbs[i:], cbs[i+1:])
+				cbs = cbs[:len(cbs)-1]
+				e.store[name] = cbs
+				break
 			}
 		}
 	}
+}
+
+func (e *Emitter) equal(a OnCallback, b OnCallback) bool {
+	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 }
 
 func (e *Emitter) ListenerCount(name string) int {
 	rw.Lock()
 	defer rw.Unlock()
 
-	counter := 0
 	if cbs, ok := e.store[name]; ok {
-		for _, v := range cbs {
-			if v != nil {
-				counter++
-			}
-		}
+		return len(cbs)
+	} else {
+		return 0
 	}
-
-	return counter
 }

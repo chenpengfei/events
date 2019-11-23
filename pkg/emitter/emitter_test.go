@@ -89,9 +89,11 @@ func TestEmit(t *testing.T) {
 		}
 		event := NewEmitter()
 		event.On(expected.NameA, cbA)
+		event.On(expected.NameA, cbA)
 		assert.Equal(1, event.ListenerCount(expected.NameA))
 		event.RemoveListener(expected.NameA, cbA)
 		assert.Equal(0, event.ListenerCount(expected.NameA))
+		assert.Equal(0, event.ListenerCount(expected.NameB))
 	})
 
 	t.Run("data race", func(t *testing.T) {
