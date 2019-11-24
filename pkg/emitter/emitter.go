@@ -70,8 +70,8 @@ func (e *Emitter) equal(a OnCallback, b OnCallback) bool {
 }
 
 func (e *Emitter) ListenerCount(name string) int {
-	rw.Lock()
-	defer rw.Unlock()
+	rw.RLock()
+	defer rw.RUnlock()
 
 	if cbs, ok := e.store[name]; ok {
 		return len(cbs)
