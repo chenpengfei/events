@@ -96,7 +96,7 @@ func TestEmit(t *testing.T) {
 		event.On(expected.NameA, cbA)
 		assert.Equal(2, event.ListenerCount(expected.NameA))
 		event.RemoveListener(expected.NameA, cbA)
-		assert.Equal(0, event.ListenerCount(expected.NameA))
+		assert.Equal(1, event.ListenerCount(expected.NameA))
 		assert.Equal(0, event.ListenerCount(expected.NameB))
 	})
 }

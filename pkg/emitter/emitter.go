@@ -55,14 +55,19 @@ func (e *Emitter) register(name string, cb Callback, once bool) {
 func (e *Emitter) RemoveListener(name string, cb Callback) {
 	if cbs, ok := e.store[name]; ok {
 		i := 0
+		found := false
 		for _, v := range cbs {
-			if !e.equal(cb, v.callback) {
-				cbs[i] = v
-				i++
+			if e.equal(cb, v.callback) && !found {
+				found = true
+				continue
 			}
+
+			cbs[i] = v
+			i++
 		}
 		e.store[name] = cbs[:i]
 	}
+
 }
 
 func (e *Emitter) equal(a Callback, b Callback) bool {
@@ -70,9 +75,5 @@ func (e *Emitter) equal(a Callback, b Callback) bool {
 }
 
 func (e *Emitter) ListenerCount(name string) int {
-	if cbs, ok := e.store[name]; ok {
-		return len(cbs)
-	} else {
-		return 0
-	}
+	return len(e.store[name])
 }
